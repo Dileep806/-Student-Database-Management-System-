@@ -1,0 +1,228 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Define constants
+#define MAX_NAME_LENGTH 100
+#define MAX_STUDENTS 100
+#define DATA_FILE "students.dat"
+
+// Define struct to represent a student
+typedef struct {
+    int id;
+    char name[MAX_NAME_LENGTH];
+    int age;
+    double grade;
+} Student;
+
+// Function prototypes
+void add_student(Student students[], int *student_count);
+void display_students(Student students[], int student_count);
+void update_student(Student students[], int student_count);
+void delete_student(Student students[], int *student_count);
+void save_data(Student students[], int student_count);
+void load_data(Student students[], int *student_count);
+void display_menu();
+int find_student_index_by_id(Student students[], int student_count, int id);
+
+int main() {
+    Student students[MAX_STUDENTS];
+    int student_count = 0;
+    int choice;
+
+    // Load existing student data from the file
+    load_data(students, &student_count);
+
+    while (1) {
+        display_menu();
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar();  // To consume the newline character left by scanf
+
+        switch (choice) {
+            case 1:
+                add_student(students, &student_count);
+                break;
+            case 2:
+                display_students(students, student_count);
+                break;
+            case 3:
+                update_student(students, student_count);
+                break;
+            case 4:
+                delete_student(students, &student_count);
+                break;
+            case 5:
+                save_data(students, student_count);
+                printf("Data saved successfully.\n");
+                break;
+            case 6:
+                printf("Exiting the program.\n");
+                save_data(students, student_count);  // Save data before exit
+                return 0;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// Function to display the menu
+void display_menu() {
+    printf("\n--- Student Database Management ---\n");
+    printf("1. Add a new student\n");
+    printf("2. Display all students\n");
+    printf("3. Update student information\n");
+    printf("4. Delete a student\n");
+    printf("5. Save data to file\n");
+    printf("6. Exit\n");
+}
+
+// Function to find a student by ID
+int find_student_index_by_id(Student students[], int student_count, int id) {
+    for (int i = 0; i < student_count; i++) {
+        if (students[i].id == id) {
+            return i;
+        }
+    }
+    return -1;  // Return -1 if student not found
+}
+
+// Function to add a new student
+void add_student(Student students[], int *student_count) {
+    if (*student_count >= MAX_STUDENTS) {
+        printf("Database is full. Cannot add more students.\n");
+        return;
+    }
+
+    Student new_student;
+    printf("Enter student ID: ");
+    scanf("%d", &new_student.id);
+    getchar();  // To consume the newline character left by scanf
+
+    // Check if the student ID already exists
+    if (find_student_index_by_id(students, *student_count, new_student.id) != -1) {
+        printf("A student with this ID already exists.\n");
+        return;
+    }
+
+    printf("Enter student name: ");
+    fgets(new_student.name, MAX_NAME_LENGTH, stdin);
+    new_student.name[strcspn(new_student.name, "\n")] = 0;  // Remove newline
+
+    printf("Enter student age: ");
+    scanf("%d", &new_student.age);
+
+    printf("Enter student grade: ");
+    scanf("%lf", &new_student.grade);
+
+    students[*student_count] = new_student;
+    (*student_count)++;
+    printf("Student added successfully.\n");
+}
+
+// Function to display all students
+void display_students(Student students[], int student_count) {
+    if (student_count == 0) {
+        printf("No students found.\n");
+        return;
+    }
+
+    printf("\n--- Student Records ---\n");
+    for (int i = 0; i < student_count; i++) {
+        printf("ID: %d\n", students[i].id);
+        printf("Name: %s\n", students[i].name);
+        printf("Age: %d\n", students[i].age);
+        printf("Grade: %.2lf\n", students[i].grade);
+        printf("----------------------------\n");
+    }
+}
+
+// Function to update student information
+void update_student(Student students[], int student_count) {
+    int id;
+    printf("Enter the ID of the student to update: ");
+    scanf("%d", &id);
+
+    int index = find_student_index_by_id(students, student_count, id);
+    if (index == -1) {
+        printf("Student with ID %d not found.\n", id);
+        return;
+    }
+
+    printf("Updating student: %s\n", students[index].name);
+    printf("Enter new name (leave empty to keep current): ");
+    getchar();  // To consume the newline character
+    char new_name[MAX_NAME_LENGTH];
+    fgets(new_name, MAX_NAME_LENGTH, stdin);
+    if (new_name[0] != '\n') {
+        new_name[strcspn(new_name, "\n")] = 0;  // Remove newline
+        strcpy(students[index].name, new_name);
+    }
+
+    printf("Enter new age (or -1 to keep current): ");
+    int new_age;
+    scanf("%d", &new_age);
+    if (new_age != -1) {
+        students[index].age = new_age;
+    }
+
+    printf("Enter new grade (or -1 to keep current): ");
+    double new_grade;
+    scanf("%lf", &new_grade);
+    if (new_grade != -1) {
+        students[index].grade = new_grade;
+    }
+
+    printf("Student updated successfully.\n");
+}
+
+// Function to delete a student
+void delete_student(Student students[], int *student_count) {
+    int id;
+    printf("Enter the ID of the student to delete: ");
+    scanf("%d", &id);
+
+    int index = find_student_index_by_id(students, *student_count, id);
+    if (index == -1) {
+        printf("Student with ID %d not found.\n", id);
+        return;
+    }
+
+    // Shift all students after the deleted student
+    for (int i = index; i < *student_count - 1; i++) {
+        students[i] = students[i + 1];
+    }
+    (*student_count)--;
+
+    printf("Student with ID %d deleted successfully.\n", id);
+}
+
+// Function to save student data to a file
+void save_data(Student students[], int student_count) {
+    FILE *file = fopen(DATA_FILE, "wb");
+    if (!file) {
+        printf("Failed to open file for saving data.\n");
+        return;
+    }
+
+    fwrite(&student_count, sizeof(int), 1, file);  // Write the number of students
+    fwrite(students, sizeof(Student), student_count, file);  // Write the student data
+
+    fclose(file);
+}
+
+// Function to load student data from a file
+void load_data(Student students[], int *student_count) {
+    FILE *file = fopen(DATA_FILE, "rb");
+    if (!file) {
+        printf("No previous data found.\n");
+        return;
+    }
+
+    fread(student_count, sizeof(int), 1, file);  // Read the number of students
+    fread(students, sizeof(Student), *student_count, file);  // Read the student data
+
+    fclose(file);
+}
